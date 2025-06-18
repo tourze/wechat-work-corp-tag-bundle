@@ -11,14 +11,7 @@ use Tourze\DoctrineIpBundle\Attribute\UpdateIpColumn;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
 use Tourze\EasyAdmin\Attribute\Action\CurdAction;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\WechatWorkContracts\AgentInterface;
 use Tourze\WechatWorkContracts\CorpInterface;
 use WechatWorkCorpTagBundle\Repository\CorpTagGroupRepository;
@@ -26,34 +19,24 @@ use WechatWorkCorpTagBundle\Repository\CorpTagGroupRepository;
 /**
  * @see https://developer.work.weixin.qq.com/document/path/92117
  */
-#[AsPermission(title: '企业标签分组')]
-#[Deletable]
-#[Editable]
-#[Creatable]
 #[ORM\Entity(repositoryClass: CorpTagGroupRepository::class)]
 #[ORM\Table(name: 'wechat_work_corp_tag_group', options: ['comment' => '企业标签分组'])]
 class CorpTagGroup
 {
     use TimestampableAware;
-    #[ListColumn(order: -1)]
-    #[ExportColumn]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => 'ID'])]
     private ?int $id = 0;
 
-    #[ListColumn(title: '所属企业')]
     #[ORM\ManyToOne(targetEntity: CorpInterface::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?CorpInterface $corp = null;
 
-    #[ListColumn(title: '同步应用')]
     #[ORM\ManyToOne(targetEntity: AgentInterface::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?AgentInterface $agent = null;
 
-    #[FormField]
-    #[ListColumn]
     #[ORM\Column(type: Types::STRING, length: 120, options: ['comment' => '分组名'])]
     private string $name;
 
@@ -63,13 +46,10 @@ class CorpTagGroup
     /**
      * @var Collection<CorpTagItem>
      */
-    #[ListColumn(title: '标签数据')]
     #[CurdAction(label: '标签管理')]
     #[ORM\OneToMany(mappedBy: 'tagGroup', targetEntity: CorpTagItem::class)]
     private Collection $items;
 
-    #[FormField]
-    #[ListColumn]
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => '排序', 'default' => 0])]
     private ?int $sortNumber = null;
 

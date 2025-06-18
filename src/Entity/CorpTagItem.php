@@ -14,15 +14,8 @@ use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
 use Tourze\EasyAdmin\Attribute\Event\AfterCreate;
 use Tourze\EasyAdmin\Attribute\Event\AfterEdit;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\WechatWorkContracts\AgentInterface;
 use Tourze\WechatWorkContracts\CorpInterface;
 use WechatWorkBundle\Service\WorkService;
@@ -34,18 +27,12 @@ use WechatWorkCorpTagBundle\Request\EditCorpTagRequest;
 /**
  * @see https://developer.work.weixin.qq.com/document/path/92117
  */
-#[AsPermission(title: '企业标签项目')]
-#[Deletable]
-#[Editable]
-#[Creatable]
 #[ORM\Entity(repositoryClass: CorpTagItemRepository::class)]
 #[ORM\Table(name: 'wechat_work_corp_tag_item', options: ['comment' => '企业标签项目'])]
 #[ORM\UniqueConstraint(name: 'wechat_work_corp_tag_item_uniq_idx', columns: ['tag_group_id', 'name'])]
 class CorpTagItem implements \Stringable
 {
     use TimestampableAware;
-    #[ExportColumn]
-    #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
@@ -62,17 +49,12 @@ class CorpTagItem implements \Stringable
     #[ORM\JoinColumn(nullable: false)]
     private ?CorpTagGroup $tagGroup = null;
 
-    #[FormField]
-    #[ListColumn]
     #[ORM\Column(type: Types::STRING, length: 120, options: ['comment' => '标签名'])]
     private string $name;
 
-    #[ListColumn]
     #[ORM\Column(type: Types::STRING, length: 64, nullable: true, options: ['comment' => '远程ID'])]
     private ?string $remoteId = null;
 
-    #[FormField]
-    #[ListColumn]
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => '排序', 'default' => 0])]
     private ?int $sortNumber = null;
 
