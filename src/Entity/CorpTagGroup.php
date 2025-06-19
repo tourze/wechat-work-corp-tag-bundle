@@ -21,7 +21,7 @@ use WechatWorkCorpTagBundle\Repository\CorpTagGroupRepository;
  */
 #[ORM\Entity(repositoryClass: CorpTagGroupRepository::class)]
 #[ORM\Table(name: 'wechat_work_corp_tag_group', options: ['comment' => '企业标签分组'])]
-class CorpTagGroup
+class CorpTagGroup implements \Stringable
 {
     use TimestampableAware;
     #[ORM\Id]
@@ -215,4 +215,9 @@ class CorpTagGroup
     public function getName(): string
     {
         return $this->name;
-    }}
+    }
+    public function __toString(): string
+    {
+        return (string) $this->getId();
+    }
+}
