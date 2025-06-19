@@ -2,7 +2,7 @@
 
 namespace WechatWorkCorpTagBundle\Entity;
 
-use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping as ORM;
@@ -14,8 +14,6 @@ use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Event\AfterCreate;
-use Tourze\EasyAdmin\Attribute\Event\AfterEdit;
 use Tourze\WechatWorkContracts\AgentInterface;
 use Tourze\WechatWorkContracts\CorpInterface;
 use WechatWorkBundle\Service\WorkService;
@@ -81,7 +79,7 @@ class CorpTagItem implements \Stringable
 
     public function __toString(): string
     {
-        if (!$this->getId()) {
+        if ($this->getId() === null) {
             return '';
         }
 
@@ -214,8 +212,6 @@ class CorpTagItem implements \Stringable
     }/**
      * 编辑后，同步到远程.
      */
-    #[AfterCreate]
-    #[AfterEdit]
     public function syncToRemote(
         CorpTagGroupRepository $tagGroupRepository,
         CorpTagItemRepository $itemRepository,
@@ -223,7 +219,7 @@ class CorpTagItem implements \Stringable
         LoggerInterface $logger,
         EntityManagerInterface $entityManager,
     ): void {
-        if ($this->getRemoteId()) {
+        if ($this->getRemoteId() !== null) {
             // 更新
             $request = new EditCorpTagRequest();
             $request->setAgent($this->getAgent());
@@ -240,7 +236,7 @@ class CorpTagItem implements \Stringable
             $request->setAgent($this->getAgent());
             // 创建
             // 有可能分组还没创建的喔
-            if (!$this->getTagGroup()->getRemoteId()) {
+            if ($this->getTagGroup()->getRemoteId() === null) {
                 $request->setGroupId($this->getTagGroup()->getRemoteId());
             }
             $request->setGroupName($this->getTagGroup()->getName());
@@ -258,7 +254,7 @@ class CorpTagItem implements \Stringable
             ]);
             if (isset($res['tag_group'])) {
                 // 补充分组信息
-                if (!$this->getTagGroup()->getRemoteId()) {
+                if ($this->getTagGroup()->getRemoteId() === null) {
                     $this->getTagGroup()->setRemoteId($res['tag_group']['group_id']);
                     $entityManager->persist($this->getTagGroup());
                     $entityManager->flush();
@@ -268,7 +264,7 @@ class CorpTagItem implements \Stringable
                     if ($tag['name'] === $this->getName()) {
                         $this->setRemoteId($tag['id']);
                         $this->setSortNumber($tag['order']);
-                        $this->setCreateTime(Carbon::createFromTimestamp($tag['create_time'], date_default_timezone_get()));
+                        $this->setCreateTime(CarbonImmutable::createFromTimestamp($tag['create_time'], date_default_timezone_get()));
                         $entityManager->persist($this);
                         $entityManager->flush();
                     }

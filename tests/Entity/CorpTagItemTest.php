@@ -218,7 +218,7 @@ class CorpTagItemTest extends TestCase
 
     public function test_setCreateTime_withValidDateTime_setsTimeCorrectly(): void
     {
-        $createTime = new \DateTime('2024-01-01 10:00:00');
+        $createTime = new \DateTimeImmutable('2024-01-01 10:00:00');
         
         $this->corpTagItem->setCreateTime($createTime);
         
@@ -227,7 +227,7 @@ class CorpTagItemTest extends TestCase
 
     public function test_setCreateTime_withNull_setsNull(): void
     {
-        $this->corpTagItem->setCreateTime(new \DateTime());
+        $this->corpTagItem->setCreateTime(new \DateTimeImmutable());
         
         $this->corpTagItem->setCreateTime(null);
         
@@ -236,7 +236,7 @@ class CorpTagItemTest extends TestCase
 
     public function test_setUpdateTime_withValidDateTime_setsTimeCorrectly(): void
     {
-        $updateTime = new \DateTime('2024-01-15 12:00:00');
+        $updateTime = new \DateTimeImmutable('2024-01-15 12:00:00');
         
         $this->corpTagItem->setUpdateTime($updateTime);
         
@@ -245,7 +245,7 @@ class CorpTagItemTest extends TestCase
 
     public function test_setUpdateTime_withNull_setsNull(): void
     {
-        $this->corpTagItem->setUpdateTime(new \DateTime());
+        $this->corpTagItem->setUpdateTime(new \DateTimeImmutable());
         
         $this->corpTagItem->setUpdateTime(null);
         
@@ -333,8 +333,8 @@ class CorpTagItemTest extends TestCase
     {
         /** @var CorpTagGroup&MockObject $tagGroup */
         $tagGroup = $this->createMock(CorpTagGroup::class);
-        $createTime = new \DateTime('2024-01-01');
-        $updateTime = new \DateTime('2024-01-15');
+        $createTime = new \DateTimeImmutable('2024-01-01');
+        $updateTime = new \DateTimeImmutable('2024-01-15');
         
         $result = $this->corpTagItem
             ->setName('链式调用测试标签')
@@ -397,7 +397,7 @@ class CorpTagItemTest extends TestCase
     public function test_edgeCases_dateTimeTypes(): void
     {
         // 测试DateTime
-        $dateTime = new \DateTime('2024-01-15 12:30:45');
+        $dateTime = new \DateTimeImmutable('2024-01-15 12:30:45');
         $this->corpTagItem->setCreateTime($dateTime);
         $this->assertSame($dateTime, $this->corpTagItem->getCreateTime());
         

@@ -11,7 +11,6 @@ use Tourze\DoctrineIpBundle\Attribute\UpdateIpColumn;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\CurdAction;
 use Tourze\WechatWorkContracts\AgentInterface;
 use Tourze\WechatWorkContracts\CorpInterface;
 use WechatWorkCorpTagBundle\Repository\CorpTagGroupRepository;
@@ -46,7 +45,6 @@ class CorpTagGroup implements \Stringable
     /**
      * @var Collection<CorpTagItem>
      */
-    #[CurdAction(label: '标签管理')]
     #[ORM\OneToMany(mappedBy: 'tagGroup', targetEntity: CorpTagItem::class)]
     private Collection $items;
 
