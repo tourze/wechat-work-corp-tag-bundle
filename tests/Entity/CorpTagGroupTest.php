@@ -10,7 +10,7 @@ use WechatWorkCorpTagBundle\Entity\CorpTagItem;
 
 /**
  * CorpTagGroup 实体测试用例
- * 
+ *
  * 测试企业标签分组实体的所有功能
  */
 class CorpTagGroupTest extends TestCase
@@ -207,7 +207,7 @@ class CorpTagGroupTest extends TestCase
     public function test_removeItem_whenItemTagGroupDiffers_removesButDoesNotSetNull(): void
     {
         $item = $this->createMock(CorpTagItem::class);
-        $otherGroup = $this->createMock(CorpTagGroup::class);
+        $otherGroup = new CorpTagGroup();
         
         $item->expects($this->once())->method('setTagGroup')->with($this->corpTagGroup);
         

@@ -9,7 +9,7 @@ use WechatWorkCorpTagBundle\Entity\CorpTagItem;
 
 /**
  * CorpTagItem 实体测试用例
- * 
+ *
  * 测试企业标签项目实体的所有功能
  */
 class CorpTagItemTest extends TestCase
