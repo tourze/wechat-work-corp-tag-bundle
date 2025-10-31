@@ -2,37 +2,71 @@
 
 namespace WechatWorkCorpTagBundle\Tests\Repository;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
-use PHPUnit\Framework\TestCase;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractRepositoryTestCase;
+use WechatWorkBundle\Entity\Agent;
+use WechatWorkBundle\Entity\Corp;
 use WechatWorkCorpTagBundle\Entity\CorpTagGroup;
 use WechatWorkCorpTagBundle\Repository\CorpTagGroupRepository;
 
 /**
- * CorpTagGroupRepository 测试用例
+ * @internal
  */
-class CorpTagGroupRepositoryTest extends TestCase
+#[CoversClass(CorpTagGroupRepository::class)]
+#[RunTestsInSeparateProcesses]
+final class CorpTagGroupRepositoryTest extends AbstractRepositoryTestCase
 {
-    private CorpTagGroupRepository $repository;
-    private ManagerRegistry $registry;
+    private ?Corp $testCorp = null;
 
-    protected function setUp(): void
+    private ?Agent $testAgent = null;
+
+    protected function onSetUp(): void
     {
-        $this->registry = $this->createMock(ManagerRegistry::class);
-        $this->repository = new CorpTagGroupRepository($this->registry);
+        self::cleanDatabase();
+        $this->setupTestData();
     }
 
-    public function test_constructor_createsRepositoryCorrectly(): void
+    private function setupTestData(): void
     {
-        $this->assertInstanceOf(CorpTagGroupRepository::class, $this->repository);
+        $entityManager = self::getEntityManager();
+
+        $this->testCorp = new Corp();
+        $this->testCorp->setName('Test Corp');
+        $this->testCorp->setCorpId('test_corp_' . uniqid());
+        $this->testCorp->setFromProvider(false);
+        $this->testCorp->setCorpSecret('test_secret_' . uniqid());
+        $entityManager->persist($this->testCorp);
+
+        $this->testAgent = new Agent();
+        $this->testAgent->setName('Test Agent');
+        $this->testAgent->setAgentId('agent_' . uniqid());
+        $this->testAgent->setSecret('agent_secret_' . uniqid());
+        $this->testAgent->setToken('agent_token_' . uniqid());
+        $this->testAgent->setEncodingAESKey('aes_key_' . uniqid());
+        $this->testAgent->setCorp($this->testCorp);
+        $entityManager->persist($this->testAgent);
+
+        $entityManager->flush();
     }
 
-    public function test_inheritsFromServiceEntityRepository(): void
+    protected function createNewEntity(): object
     {
-        $reflection = new \ReflectionClass($this->repository);
-        $parentClass = $reflection->getParentClass();
-        
-        $this->assertNotFalse($parentClass);
-        $this->assertSame('ServiceEntityRepository', $parentClass->getShortName());
+        $entity = new CorpTagGroup();
+        $entity->setName('Test CorpTagGroup ' . uniqid());
+        $entity->setCorp($this->testCorp);
+        $entity->setAgent($this->testAgent);
+        $entity->setSortNumber(0);
+
+        return $entity;
+    }
+
+    /**
+     * @return ServiceEntityRepository<CorpTagGroup>
+     */
+    protected function getRepository(): ServiceEntityRepository
+    {
+        return self::getService(CorpTagGroupRepository::class);
     }
 }

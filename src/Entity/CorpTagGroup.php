@@ -6,12 +6,14 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Tourze\DoctrineIpBundle\Attribute\CreateIpColumn;
-use Tourze\DoctrineIpBundle\Attribute\UpdateIpColumn;
+use Symfony\Component\Validator\Constraints as Assert;
+use Tourze\DoctrineIpBundle\Traits\IpTraceableAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\WechatWorkContracts\AgentInterface;
 use Tourze\WechatWorkContracts\CorpInterface;
+use WechatWorkBundle\Entity\Agent;
+use WechatWorkBundle\Entity\Corp;
 use WechatWorkCorpTagBundle\Repository\CorpTagGroupRepository;
 
 /**
@@ -23,41 +25,39 @@ class CorpTagGroup implements \Stringable
 {
     use TimestampableAware;
     use BlameableAware;
+    use IpTraceableAware;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => 'ID'])]
-    private ?int $id = 0;
+    private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: CorpInterface::class)]
+    #[ORM\ManyToOne(targetEntity: Corp::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?CorpInterface $corp = null;
 
-    #[ORM\ManyToOne(targetEntity: AgentInterface::class)]
+    #[ORM\ManyToOne(targetEntity: Agent::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?AgentInterface $agent = null;
 
     #[ORM\Column(type: Types::STRING, length: 120, options: ['comment' => '分组名'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 120)]
     private string $name;
 
     #[ORM\Column(type: Types::STRING, length: 64, nullable: true, options: ['comment' => '远程ID'])]
+    #[Assert\Length(max: 64)]
     private ?string $remoteId = null;
 
     /**
-     * @var Collection<CorpTagItem>
+     * @var Collection<int, CorpTagItem>
      */
     #[ORM\OneToMany(mappedBy: 'tagGroup', targetEntity: CorpTagItem::class)]
     private Collection $items;
 
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => '排序', 'default' => 0])]
+    #[Assert\PositiveOrZero]
     private ?int $sortNumber = null;
-
-    #[CreateIpColumn]
-    #[ORM\Column(length: 128, nullable: true, options: ['comment' => '创建时IP'])]
-    private ?string $createdFromIp = null;
-
-    #[UpdateIpColumn]
-    #[ORM\Column(length: 128, nullable: true, options: ['comment' => '更新时IP'])]
-    private ?string $updatedFromIp = null;
 
     public function __construct()
     {
@@ -69,11 +69,9 @@ class CorpTagGroup implements \Stringable
         return $this->id;
     }
 
-    public function setName(string $name): self
+    public function setName(string $name): void
     {
         $this->name = $name;
-
-        return $this;
     }
 
     public function getRemoteId(): ?string
@@ -81,11 +79,9 @@ class CorpTagGroup implements \Stringable
         return $this->remoteId;
     }
 
-    public function setRemoteId(?string $remoteId): self
+    public function setRemoteId(?string $remoteId): void
     {
         $this->remoteId = $remoteId;
-
-        return $this;
     }
 
     /**
@@ -99,7 +95,7 @@ class CorpTagGroup implements \Stringable
     public function addItem(CorpTagItem $item): self
     {
         if (!$this->items->contains($item)) {
-            $this->items[] = $item;
+            $this->items->add($item);
             $item->setTagGroup($this);
         }
 
@@ -123,11 +119,9 @@ class CorpTagGroup implements \Stringable
         return $this->corp;
     }
 
-    public function setCorp(?CorpInterface $corp): self
+    public function setCorp(?CorpInterface $corp): void
     {
         $this->corp = $corp;
-
-        return $this;
     }
 
     public function getAgent(): ?AgentInterface
@@ -135,11 +129,9 @@ class CorpTagGroup implements \Stringable
         return $this->agent;
     }
 
-    public function setAgent(?AgentInterface $agent): self
+    public function setAgent(?AgentInterface $agent): void
     {
         $this->agent = $agent;
-
-        return $this;
     }
 
     public function getSortNumber(): ?int
@@ -147,41 +139,16 @@ class CorpTagGroup implements \Stringable
         return $this->sortNumber;
     }
 
-    public function setSortNumber(int $sortNumber): self
+    public function setSortNumber(int $sortNumber): void
     {
         $this->sortNumber = $sortNumber;
-
-        return $this;
-    }
-
-    public function setCreatedFromIp(?string $createdFromIp): self
-    {
-        $this->createdFromIp = $createdFromIp;
-
-        return $this;
-    }
-
-    public function getCreatedFromIp(): ?string
-    {
-        return $this->createdFromIp;
-    }
-
-    public function setUpdatedFromIp(?string $updatedFromIp): self
-    {
-        $this->updatedFromIp = $updatedFromIp;
-
-        return $this;
-    }
-
-    public function getUpdatedFromIp(): ?string
-    {
-        return $this->updatedFromIp;
     }
 
     public function getName(): string
     {
         return $this->name;
     }
+
     public function __toString(): string
     {
         return (string) $this->getId();

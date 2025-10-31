@@ -8,14 +8,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Serializer\Attribute\Ignore;
-use Tourze\DoctrineIpBundle\Attribute\CreateIpColumn;
-use Tourze\DoctrineIpBundle\Attribute\UpdateIpColumn;
-use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
+use Symfony\Component\Validator\Constraints as Assert;
+use Tourze\DoctrineIpBundle\Traits\IpTraceableAware;
 use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\WechatWorkContracts\AgentInterface;
 use Tourze\WechatWorkContracts\CorpInterface;
+use WechatWorkBundle\Entity\Agent;
+use WechatWorkBundle\Entity\Corp;
 use WechatWorkBundle\Service\WorkService;
 use WechatWorkCorpTagBundle\Repository\CorpTagGroupRepository;
 use WechatWorkCorpTagBundle\Repository\CorpTagItemRepository;
@@ -33,9 +34,10 @@ class CorpTagItem implements \Stringable
     use TimestampableAware;
     use BlameableAware;
     use SnowflakeKeyAware;
+    use IpTraceableAware;
 
     #[Ignore]
-    #[ORM\ManyToOne(targetEntity: CorpInterface::class)]
+    #[ORM\ManyToOne(targetEntity: Corp::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?CorpInterface $corp = null;
 
@@ -45,47 +47,40 @@ class CorpTagItem implements \Stringable
     private ?CorpTagGroup $tagGroup = null;
 
     #[ORM\Column(type: Types::STRING, length: 120, options: ['comment' => '标签名'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 120)]
     private string $name;
 
     #[ORM\Column(type: Types::STRING, length: 64, nullable: true, options: ['comment' => '远程ID'])]
+    #[Assert\Length(max: 64)]
     private ?string $remoteId = null;
 
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => '排序', 'default' => 0])]
+    #[Assert\PositiveOrZero]
     private ?int $sortNumber = null;
 
     #[Ignore]
-    #[ORM\ManyToOne(targetEntity: AgentInterface::class)]
+    #[ORM\ManyToOne(targetEntity: Agent::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?AgentInterface $agent = null;
 
-    #[CreateIpColumn]
-    #[ORM\Column(length: 128, nullable: true, options: ['comment' => '创建时IP'])]
-    private ?string $createdFromIp = null;
-
-    #[UpdateIpColumn]
-    #[ORM\Column(length: 128, nullable: true, options: ['comment' => '更新时IP'])]
-    private ?string $updatedFromIp = null;
-
     public function __toString(): string
     {
-        if ($this->getId() === null) {
+        if (null === $this->getId()) {
             return '';
         }
 
-        return "{$this->getTagGroup()->getName()}-{$this->getName()}";
+        return "{$this->getTagGroup()?->getName()}-{$this->getName()}";
     }
-
 
     public function getName(): string
     {
         return $this->name;
     }
 
-    public function setName(string $name): self
+    public function setName(string $name): void
     {
         $this->name = $name;
-
-        return $this;
     }
 
     public function getRemoteId(): ?string
@@ -93,11 +88,9 @@ class CorpTagItem implements \Stringable
         return $this->remoteId;
     }
 
-    public function setRemoteId(?string $remoteId): self
+    public function setRemoteId(?string $remoteId): void
     {
         $this->remoteId = $remoteId;
-
-        return $this;
     }
 
     public function getTagGroup(): ?CorpTagGroup
@@ -105,11 +98,9 @@ class CorpTagItem implements \Stringable
         return $this->tagGroup;
     }
 
-    public function setTagGroup(?CorpTagGroup $tagGroup): self
+    public function setTagGroup(?CorpTagGroup $tagGroup): void
     {
         $this->tagGroup = $tagGroup;
-
-        return $this;
     }
 
     public function getCorp(): ?CorpInterface
@@ -117,11 +108,9 @@ class CorpTagItem implements \Stringable
         return $this->corp;
     }
 
-    public function setCorp(?CorpInterface $corp): self
+    public function setCorp(?CorpInterface $corp): void
     {
         $this->corp = $corp;
-
-        return $this;
     }
 
     public function getSortNumber(): ?int
@@ -129,11 +118,9 @@ class CorpTagItem implements \Stringable
         return $this->sortNumber;
     }
 
-    public function setSortNumber(int $sortNumber): self
+    public function setSortNumber(int $sortNumber): void
     {
         $this->sortNumber = $sortNumber;
-
-        return $this;
     }
 
     public function getAgent(): ?AgentInterface
@@ -141,36 +128,11 @@ class CorpTagItem implements \Stringable
         return $this->agent;
     }
 
-    public function setAgent(?AgentInterface $agent): self
+    public function setAgent(?AgentInterface $agent): void
     {
         $this->agent = $agent;
-
-        return $this;
     }
 
-    public function setCreatedFromIp(?string $createdFromIp): self
-    {
-        $this->createdFromIp = $createdFromIp;
-
-        return $this;
-    }
-
-    public function getCreatedFromIp(): ?string
-    {
-        return $this->createdFromIp;
-    }
-
-    public function setUpdatedFromIp(?string $updatedFromIp): self
-    {
-        $this->updatedFromIp = $updatedFromIp;
-
-        return $this;
-    }
-
-    public function getUpdatedFromIp(): ?string
-    {
-        return $this->updatedFromIp;
-    }
     /**
      * 编辑后，同步到远程.
      */
@@ -181,57 +143,141 @@ class CorpTagItem implements \Stringable
         LoggerInterface $logger,
         EntityManagerInterface $entityManager,
     ): void {
-        if ($this->getRemoteId() !== null) {
-            // 更新
-            $request = new EditCorpTagRequest();
-            $request->setAgent($this->getAgent());
-            $request->setId($this->getRemoteId());
-            $request->setName($this->getName());
-            $request->setOrder($this->getSortNumber());
-            $res = $mediaService->request($request);
-            $logger->debug('更新企业标签', [
-                'item' => $this,
-                'res' => $res,
-            ]);
+        if (null !== $this->getRemoteId()) {
+            $this->updateRemoteTag($mediaService, $logger);
         } else {
-            $request = new AddCorpTagRequest();
-            $request->setAgent($this->getAgent());
-            // 创建
-            // 有可能分组还没创建的喔
-            if ($this->getTagGroup()->getRemoteId() === null) {
-                $request->setGroupId($this->getTagGroup()->getRemoteId());
-            }
-            $request->setGroupName($this->getTagGroup()->getName());
-            $request->setOrder($this->getTagGroup()->getSortNumber());
-            $request->setTagList([
-                [
-                    'name' => $this->getName(),
-                    'order' => $this->getSortNumber(),
-                ],
-            ]);
-            $res = $mediaService->request($request);
-            $logger->debug('新增企业标签', [
-                'item' => $this,
-                'res' => $res,
-            ]);
-            if (isset($res['tag_group'])) {
-                // 补充分组信息
-                if ($this->getTagGroup()->getRemoteId() === null) {
-                    $this->getTagGroup()->setRemoteId($res['tag_group']['group_id']);
-                    $entityManager->persist($this->getTagGroup());
-                    $entityManager->flush();
-                }
+            $this->createRemoteTag($mediaService, $logger, $entityManager);
+        }
+    }
 
-                foreach ($res['tag_group']['tag'] as $tag) {
-                    if ($tag['name'] === $this->getName()) {
-                        $this->setRemoteId($tag['id']);
-                        $this->setSortNumber($tag['order']);
-                        $this->setCreateTime(CarbonImmutable::createFromTimestamp($tag['create_time'], date_default_timezone_get()));
-                        $entityManager->persist($this);
-                        $entityManager->flush();
-                    }
+    private function updateRemoteTag(WorkService $mediaService, LoggerInterface $logger): void
+    {
+        $request = new EditCorpTagRequest();
+        $request->setAgent($this->getAgent());
+        $request->setId((string) $this->getRemoteId());
+        $request->setName($this->getName());
+        $request->setOrder($this->getSortNumber());
+        $res = $mediaService->request($request);
+        $logger->debug('更新企业标签', [
+            'item' => $this,
+            'res' => $res,
+        ]);
+    }
+
+    private function createRemoteTag(
+        WorkService $mediaService,
+        LoggerInterface $logger,
+        EntityManagerInterface $entityManager,
+    ): void {
+        $request = new AddCorpTagRequest();
+        $request->setAgent($this->getAgent());
+
+        $tagGroup = $this->getTagGroup();
+        if (null !== $tagGroup && null !== $tagGroup->getRemoteId()) {
+            $request->setGroupId($tagGroup->getRemoteId());
+        }
+        if (null !== $tagGroup) {
+            $request->setGroupName($tagGroup->getName());
+            $request->setOrder($tagGroup->getSortNumber());
+        }
+        $request->setTagList([
+            [
+                'name' => $this->getName(),
+                'order' => $this->getSortNumber(),
+            ],
+        ]);
+
+        $res = $mediaService->request($request);
+        $logger->debug('新增企业标签', [
+            'item' => $this,
+            'res' => $res,
+        ]);
+
+        if (is_array($res) && isset($res['tag_group']) && is_array($res['tag_group'])) {
+            /** @var array<string, mixed> $tagGroupData */
+            $tagGroupData = $res['tag_group'];
+            $this->processTagGroupResponse($tagGroupData, $entityManager);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $tagGroup
+     */
+    private function processTagGroupResponse(array $tagGroup, EntityManagerInterface $entityManager): void
+    {
+        $tagGroupEntity = $this->getTagGroup();
+        if (null === $tagGroupEntity?->getRemoteId() && null !== $tagGroupEntity) {
+            if (isset($tagGroup['group_id'])) {
+                $remoteId = $tagGroup['group_id'];
+                if (is_string($remoteId) || is_numeric($remoteId)) {
+                    $tagGroupEntity->setRemoteId((string) $remoteId);
+                    $entityManager->persist($tagGroupEntity);
+                    $entityManager->flush();
                 }
             }
         }
+
+        if (isset($tagGroup['tag']) && is_array($tagGroup['tag'])) {
+            $this->processTagsResponse($tagGroup['tag'], $entityManager);
+        }
+    }
+
+    /**
+     * @param array<mixed> $tags
+     */
+    private function processTagsResponse(array $tags, EntityManagerInterface $entityManager): void
+    {
+        $currentTagName = $this->getName();
+
+        foreach ($tags as $tag) {
+            if (!$this->isValidTagData($tag, $currentTagName)) {
+                continue;
+            }
+
+            /** @var array<string, mixed> $tagData */
+            $tagData = $tag;
+            $this->updateFromTagData($tagData, $entityManager);
+            break;
+        }
+    }
+
+    /**
+     * @param mixed $tag
+     */
+    private function isValidTagData($tag, string $currentTagName): bool
+    {
+        return is_array($tag)
+            && isset($tag['name'])
+            && $tag['name'] === $currentTagName
+            && isset($tag['id'])
+            && isset($tag['order'])
+            && isset($tag['create_time']);
+    }
+
+    /**
+     * @param array<string, mixed> $tagData
+     */
+    private function updateFromTagData(array $tagData, EntityManagerInterface $entityManager): void
+    {
+        $tagId = $tagData['id'];
+        if (is_string($tagId) || is_numeric($tagId)) {
+            $this->setRemoteId((string) $tagId);
+        }
+
+        $order = $tagData['order'];
+        if (is_numeric($order)) {
+            $this->setSortNumber((int) $order);
+        }
+
+        $createTime = $tagData['create_time'];
+        if (is_numeric($createTime)) {
+            $this->setCreateTime(CarbonImmutable::createFromTimestamp(
+                (int) $createTime,
+                date_default_timezone_get()
+            ));
+        }
+
+        $entityManager->persist($this);
+        $entityManager->flush();
     }
 }

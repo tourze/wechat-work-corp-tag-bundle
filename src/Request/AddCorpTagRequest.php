@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace WechatWorkCorpTagBundle\Request;
 
 use HttpClientBundle\Request\ApiRequest;
-use Tourze\JsonRPC\Core\Exception\ApiException;
 use WechatWorkBundle\Request\AgentAware;
+use WechatWorkCorpTagBundle\Exception\InvalidCorpTagRequestException;
 
 /**
  * 添加企业客户标签
@@ -27,7 +29,7 @@ class AddCorpTagRequest extends ApiRequest
     private ?string $groupName = null;
 
     /**
-     * @var array 添加的标签
+     * @var array<int, array<string, mixed>> 添加的标签
      */
     private array $tagList;
 
@@ -46,33 +48,69 @@ class AddCorpTagRequest extends ApiRequest
         return '/cgi-bin/externalcontact/add_corp_tag';
     }
 
-    public function getRequestOptions(): ?array
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRequestOptions(): array
     {
         $json = [];
 
+        $json['tag'] = $this->validateAndGetTags();
+        $json = $this->addOptionalGroupFields($json);
+        $json = $this->addOptionalOrderAndAgent($json);
+
+        return [
+            'json' => $json,
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function validateAndGetTags(): array
+    {
         $tags = [];
         foreach ($this->getTagList() as $tagItem) {
             if (!is_array($tagItem)) {
-                throw new ApiException('标签格式错误');
+                throw new InvalidCorpTagRequestException('标签格式错误');
             }
-            if (empty($tagItem['name'])) {
-                throw new ApiException('缺少标签名');
+            if (!isset($tagItem['name']) || !is_string($tagItem['name']) || '' === trim($tagItem['name'])) {
+                throw new InvalidCorpTagRequestException('缺少标签名');
             }
             if (mb_strlen($tagItem['name']) > 30) {
-                throw new ApiException('标签名不得超过30个字符');
+                throw new InvalidCorpTagRequestException('标签名不得超过30个字符');
             }
             $tags[] = $tagItem;
         }
-        $json['tag'] = $tags;
+
+        return $tags;
+    }
+
+    /**
+     * @param array<string, mixed> $json
+     * @return array<string, mixed>
+     */
+    private function addOptionalGroupFields(array $json): array
+    {
         if (null !== $this->getGroupId()) {
             $json['group_id'] = $this->getGroupId();
         }
         if (null !== $this->getGroupName()) {
             if (mb_strlen($this->getGroupName()) > 30) {
-                throw new ApiException('标签组名称不得超过30个字符');
+                throw new InvalidCorpTagRequestException('标签组名称不得超过30个字符');
             }
             $json['group_name'] = $this->getGroupName();
         }
+
+        return $json;
+    }
+
+    /**
+     * @param array<string, mixed> $json
+     * @return array<string, mixed>
+     */
+    private function addOptionalOrderAndAgent(array $json): array
+    {
         if (null !== $this->getOrder()) {
             $json['order'] = $this->getOrder();
         }
@@ -80,9 +118,7 @@ class AddCorpTagRequest extends ApiRequest
             $json['agentid'] = $this->getAgentId();
         }
 
-        return [
-            'json' => $json,
-        ];
+        return $json;
     }
 
     public function getRequestMethod(): ?string
@@ -110,11 +146,17 @@ class AddCorpTagRequest extends ApiRequest
         $this->groupName = $groupName;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTagList(): array
     {
         return $this->tagList;
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $tagList
+     */
     public function setTagList(array $tagList): void
     {
         $this->tagList = $tagList;

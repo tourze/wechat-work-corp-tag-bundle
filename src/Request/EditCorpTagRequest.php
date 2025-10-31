@@ -42,7 +42,10 @@ class EditCorpTagRequest extends ApiRequest
         return '/cgi-bin/externalcontact/edit_corp_tag';
     }
 
-    public function getRequestOptions(): ?array
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRequestOptions(): array
     {
         $json = [
             'id' => $this->getId(),

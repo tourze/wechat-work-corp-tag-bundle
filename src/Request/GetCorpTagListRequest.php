@@ -19,12 +19,12 @@ class GetCorpTagListRequest extends ApiRequest
     use AgentAware;
 
     /**
-     * @var array|null 要查询的标签id
+     * @var array<int, string>|null 要查询的标签id
      */
     private ?array $tagId = null;
 
     /**
-     * @var array|null 要查询的标签组id，返回该标签组以及其下的所有标签信息
+     * @var array<int, string>|null 要查询的标签组id，返回该标签组以及其下的所有标签信息
      */
     private ?array $groupId = null;
 
@@ -33,7 +33,10 @@ class GetCorpTagListRequest extends ApiRequest
         return '/cgi-bin/externalcontact/get_corp_tag_list';
     }
 
-    public function getRequestOptions(): ?array
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRequestOptions(): array
     {
         $json = [];
         if (null !== $this->getTagId()) {
@@ -53,21 +56,33 @@ class GetCorpTagListRequest extends ApiRequest
         return 'POST';
     }
 
+    /**
+     * @return array<int, string>|null
+     */
     public function getTagId(): ?array
     {
         return $this->tagId;
     }
 
+    /**
+     * @param array<int, string>|null $tagId
+     */
     public function setTagId(?array $tagId): void
     {
         $this->tagId = $tagId;
     }
 
+    /**
+     * @return array<int, string>|null
+     */
     public function getGroupId(): ?array
     {
         return $this->groupId;
     }
 
+    /**
+     * @param array<int, string>|null $groupId
+     */
     public function setGroupId(?array $groupId): void
     {
         $this->groupId = $groupId;

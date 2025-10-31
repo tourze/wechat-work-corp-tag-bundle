@@ -3,13 +3,7 @@ services:
   _defaults:
     autowire: true      # Automatically injects dependencies in your services.
     autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+    public: true
 
-  WechatWorkCorpTagBundle\Repository\:
-    resource: '../../Repository/'
-
-  WechatWorkCorpTagBundle\Controller\:
-    resource: '../../Controller/'
-    tags: ['controller.service_arguments']
-
-  WechatWorkCorpTagBundle\Service\:
-    resource: '../../Service/'
+  WechatWorkCorpTagBundle\DataFixtures\:
+    resource: '../../DataFixtures/'
