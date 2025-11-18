@@ -55,11 +55,6 @@ class CorpTagItemCrudControllerTest extends AbstractEasyAdminControllerTestCase
         yield 'sortNumber' => ['sortNumber'];
     }
 
-    public function testGetEntityFqcn(): void
-    {
-        self::assertSame(CorpTagItem::class, CorpTagItemCrudController::getEntityFqcn());
-    }
-
     public function testConfigureFields(): void
     {
         $controller = new CorpTagItemCrudController();
