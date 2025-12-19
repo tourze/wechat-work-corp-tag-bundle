@@ -4,7 +4,7 @@ namespace WechatWorkCorpTagBundle\DependencyInjection;
 
 use Tourze\SymfonyDependencyServiceLoader\AutoExtension;
 
-class WechatWorkCorpTagExtension extends AutoExtension
+final class WechatWorkCorpTagExtension extends AutoExtension
 {
     protected function getConfigDir(): string
     {
